@@ -1,0 +1,54 @@
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+	xmlns:beans="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+           http://www.springframework.org/schema/security
+           http://www.springframework.org/schema/security/spring-security-3.2.xsd">
+
+	<http pattern="/jsp/**" authentication-manager-ref="authenticationManager">
+		<intercept-url pattern="/jsp/login*" access="IS_AUTHENTICATED_ANONYMOUSLY"
+			requires-channel="https" />
+		<intercept-url pattern="/jsp/j_spring_security_check"
+			access="IS_AUTHENTICATED_ANONYMOUSLY" />
+		<intercept-url pattern="/jsp/logout" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+		<intercept-url pattern="/jsp/**" access="ROLE_ADMIN"
+			requires-channel="https" />
+		<form-login default-target-url="/jsp"
+			login-processing-url="/jsp/j_spring_security_check" login-page='/jsp/login'
+			authentication-failure-url="/jsp/login?loginStatus=Authentication%20Failure"
+			username-parameter='username' password-parameter='password' />
+		<logout logout-url="/jsp/logout" logout-success-url="/jsp" />
+		<access-denied-handler error-page="/jsp/accessDenied" />
+	</http>
+	
+	<http entry-point-ref="restAuthEntryPoint" pattern="/rest/**">
+	    <intercept-url pattern="/rest/create-account" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+		<intercept-url pattern="/rest/**" access="ROLE_ADMIN" />
+		<custom-filter ref="basicAuthenticationFilter" after="BASIC_AUTH_FILTER" />
+	</http>
+
+	<beans:bean id="authProvider"
+		class="com.naorem.khogen.account.server.auth.UserLoginAuthProvider">
+		<beans:constructor-arg type="java.util.Properties">
+			<beans:props>
+				<beans:prop key="ROLE_ADMIN">ALL,test,test1</beans:prop> <!-- TODO externalize -->
+			</beans:props>
+		</beans:constructor-arg>
+	</beans:bean>
+	
+	 <authentication-manager alias="authenticationManager">
+		<authentication-provider ref="authProvider" />
+	</authentication-manager>
+
+	<beans:bean id="restAuthEntryPoint"
+		class="org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint">
+	    <beans:property name="realmName" value="REST Realm" />
+	</beans:bean>
+
+	
+	<beans:bean id="basicAuthenticationFilter" class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
+		<beans:property name="authenticationManager" ref="authenticationManager"/>
+		<beans:property name="authenticationEntryPoint" ref="restAuthEntryPoint" />
+	</beans:bean>
+
+</beans:beans>
